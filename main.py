@@ -34,33 +34,32 @@ def save_state(state):
 
 
 def check_cross(df, ma_col, name, ticker, state, band=0.01):
-    prev_price = df["Close"].iloc[-2].item()
     curr_price = df["Close"].iloc[-1].item()
-
-    prev_ma = df[ma_col].iloc[-2].item()
     curr_ma = df[ma_col].iloc[-1].item()
 
-    upper_prev = prev_ma * (1 + band)
-    upper_curr = curr_ma * (1 + band)
-
-    lower_prev = prev_ma * (1 - band)
-    lower_curr = curr_ma * (1 - band)
+    upper = curr_ma * (1 + band)
+    lower = curr_ma * (1 - band)
 
     key = f"{ticker}_{ma_col}"
 
     prev_state = state.get(key)
 
-    # 상향 돌파 (밴드 위로 진입)
-    if prev_price <= upper_prev and curr_price > upper_curr:
-        if prev_state != "UP":
-            state[key] = "UP"
-            return f"{name} 상향 돌파 (+{int(band * 100)}% 밴드)"
+    # 현재 상태 판단
+    if curr_price > upper:
+        curr_state = "UP"
+    elif curr_price < lower:
+        curr_state = "DOWN"
+    else:
+        curr_state = "MID"
 
-    # 하향 돌파 (밴드 아래로 이탈)
-    if prev_price >= lower_prev and curr_price < lower_curr:
-        if prev_state != "DOWN":
-            state[key] = "DOWN"
-            return f"{name} 하향 돌파 (-{int(band * 100)}% 밴드)"
+    # 상태 변화 있을 때만 알림
+    if prev_state != curr_state:
+        state[key] = curr_state
+
+        if curr_state == "UP":
+            return f"{name} UP 전환 (+{int(band * 100)}% 밴드)"
+        elif curr_state == "DOWN":
+            return f"{name} DOWN 전환 (-{int(band * 100)}% 밴드)"
 
     return None
 
