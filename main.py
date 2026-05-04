@@ -18,18 +18,26 @@ TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 
-def check_cross(df, ma_col, name):
+def check_cross(df, ma_col, name, band=0.01):
     prev_price = df["Close"].iloc[-2].item()
     curr_price = df["Close"].iloc[-1].item()
 
     prev_ma = df[ma_col].iloc[-2].item()
     curr_ma = df[ma_col].iloc[-1].item()
 
-    if prev_price <= prev_ma and curr_price > curr_ma:
-        return f"{name} 상향 돌파"
+    upper_prev = prev_ma * (1 + band)
+    upper_curr = curr_ma * (1 + band)
 
-    if prev_price >= prev_ma and curr_price < curr_ma:
-        return f"{name} 하향 돌파"
+    lower_prev = prev_ma * (1 - band)
+    lower_curr = curr_ma * (1 - band)
+
+    # 상향 돌파 (밴드 위로 진입)
+    if prev_price <= upper_prev and curr_price > upper_curr:
+        return f"{name} 상향 돌파 (+{int(band * 100)}% 밴드)"
+
+    # 하향 돌파 (밴드 아래로 이탈)
+    if prev_price >= lower_prev and curr_price < lower_curr:
+        return f"{name} 하향 돌파 (-{int(band * 100)}% 밴드)"
 
     return None
 
@@ -44,7 +52,7 @@ def process(ticker, name):
     signals = []
 
     for ma, label in [("MA60", "60일"), ("MA120", "120일"), ("MA200", "200일")]:
-        result = check_cross(df, ma, label)
+        result = check_cross(df, ma, label, band=0.01)
         if result:
             signals.append(result)
 
