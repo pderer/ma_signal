@@ -1,3 +1,4 @@
+import json
 import os
 
 import requests
@@ -16,9 +17,23 @@ TICKERS = {
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+STATE_FILE = "state.json"
 
 
-def check_cross(df, ma_col, name, band=0.01):
+def load_state():
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+
+def check_cross(df, ma_col, name, ticker, state, band=0.01):
     prev_price = df["Close"].iloc[-2].item()
     curr_price = df["Close"].iloc[-1].item()
 
@@ -31,18 +46,26 @@ def check_cross(df, ma_col, name, band=0.01):
     lower_prev = prev_ma * (1 - band)
     lower_curr = curr_ma * (1 - band)
 
+    key = f"{ticker}_{ma_col}"
+
+    prev_state = state.get(key)
+
     # 상향 돌파 (밴드 위로 진입)
     if prev_price <= upper_prev and curr_price > upper_curr:
-        return f"{name} 상향 돌파 (+{int(band * 100)}% 밴드)"
+        if prev_state != "UP":
+            state[key] = "UP"
+            return f"{name} 상향 돌파 (+{int(band * 100)}% 밴드)"
 
     # 하향 돌파 (밴드 아래로 이탈)
     if prev_price >= lower_prev and curr_price < lower_curr:
-        return f"{name} 하향 돌파 (-{int(band * 100)}% 밴드)"
+        if prev_state != "DOWN":
+            state[key] = "DOWN"
+            return f"{name} 하향 돌파 (-{int(band * 100)}% 밴드)"
 
     return None
 
 
-def process(ticker, name):
+def process(ticker, state):
     df = yf.download(ticker, period="1y", auto_adjust=True, progress=False)
 
     df["MA60"] = df["Close"].rolling(60).mean()
@@ -52,7 +75,7 @@ def process(ticker, name):
     signals = []
 
     for ma, label in [("MA60", "60일"), ("MA120", "120일"), ("MA200", "200일")]:
-        result = check_cross(df, ma, label, band=0.01)
+        result = check_cross(df, ma, label, ticker, state, band=0.01)
         if result:
             signals.append(result)
 
@@ -69,8 +92,10 @@ def send_telegram(msg):
 def main():
     messages = []
 
+    state = load_state()
+
     for ticker, name in TICKERS.items():
-        signals = process(ticker, name)
+        signals = process(ticker, state)
 
         if signals:
             msg = f"[{name}]\n" + "\n".join(signals)
@@ -79,6 +104,8 @@ def main():
     if messages:
         final_msg = "\n\n".join(messages)
         send_telegram(final_msg)
+
+    save_state(state)
 
 
 if __name__ == "__main__":
