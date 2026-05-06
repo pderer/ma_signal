@@ -17,6 +17,8 @@ TICKERS = {
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+KONGJI_TOKEN = os.environ["KONGJI_TELEGRAM_TOKEN"]
+KONGJI_CHAT_ID = os.environ["KONGJI_TELEGRAM_CHAT_ID"]
 STATE_FILE = "state.json"
 
 
@@ -85,6 +87,10 @@ def send_telegram(msg):
     requests.post(
         f"https://api.telegram.org/bot{TOKEN}/sendMessage",
         data={"chat_id": CHAT_ID, "text": msg},
+    )
+    requests.post(
+        f"https://api.telegram.org/bot{KONGJI_TOKEN}/sendMessage",
+        data={"chat_id": KONGJI_CHAT_ID, "text": msg},
     )
 
 
