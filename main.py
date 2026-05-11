@@ -49,8 +49,10 @@ def check_cross(df, ma_col, name, ticker, state, band=0.01):
     # 현재 상태 판단
     if curr_price >= upper:
         curr_state = "UP"
-    elif curr_price < lower:
+    elif curr_price <= lower:
         curr_state = "DOWN"
+    else:
+        curr_state = prev_state
 
     # 상태 변화 있을 때만 알림
     if prev_state != curr_state:
