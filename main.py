@@ -69,13 +69,19 @@ def check_cross(df, ma_col, name, ticker, state, band=0.01):
 def process(ticker, state):
     df = yf.download(ticker, period="1y", auto_adjust=True, progress=False)
 
+    df["MA20"] = df["Close"].rolling(20).mean()
     df["MA60"] = df["Close"].rolling(60).mean()
     df["MA120"] = df["Close"].rolling(120).mean()
     df["MA200"] = df["Close"].rolling(200).mean()
 
     signals = []
 
-    for ma, label in [("MA60", "60일"), ("MA120", "120일"), ("MA200", "200일")]:
+    for ma, label in [
+        ("MA20", "20일"),
+        ("MA60", "60일"),
+        ("MA120", "120일"),
+        ("MA200", "200일"),
+    ]:
         result = check_cross(df, ma, label, ticker, state, band=0.01)
         if result:
             signals.append(result)
