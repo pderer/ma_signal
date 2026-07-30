@@ -35,11 +35,12 @@ def save_state(state):
         json.dump(state, f, indent=2)
 
 
-def check_cross(df, ma_col, name, ticker, state, band=0.01):
+def check_cross(df, ma_col, name, ticker, state, band=0.02):
     curr_price = df["Close"].iloc[-1].item()
     curr_ma = df[ma_col].iloc[-1].item()
 
-    upper = curr_ma * (1 + band)
+    # ma가 넘으면 매수, 98 이격도 미만이면 매도
+    upper = curr_ma
     lower = curr_ma * (1 - band)
 
     key = f"{ticker}_{ma_col}"
@@ -47,9 +48,9 @@ def check_cross(df, ma_col, name, ticker, state, band=0.01):
     prev_state = state.get(key)
 
     # 현재 상태 판단
-    if curr_price >= upper:
+    if curr_price > upper:
         curr_state = "UP"
-    elif curr_price <= lower:
+    elif curr_price < lower:
         curr_state = "DOWN"
     else:
         curr_state = prev_state
@@ -59,9 +60,9 @@ def check_cross(df, ma_col, name, ticker, state, band=0.01):
         state[key] = curr_state
 
         if curr_state == "UP":
-            return f"{name} UP 전환 (+{int(band * 100)}% 밴드)"
+            return f"{name} UP 전환 (MA 돌파)"
         elif curr_state == "DOWN":
-            return f"{name} DOWN 전환 (-{int(band * 100)}% 밴드)"
+            return f"{name} DOWN 전환 ({100 - int(band * 100)}% 이격도 미만)"
 
     return None
 
@@ -69,7 +70,6 @@ def check_cross(df, ma_col, name, ticker, state, band=0.01):
 def process(ticker, state):
     df = yf.download(ticker, period="1y", auto_adjust=True, progress=False)
 
-    df["MA20"] = df["Close"].rolling(20).mean()
     df["MA60"] = df["Close"].rolling(60).mean()
     df["MA120"] = df["Close"].rolling(120).mean()
     df["MA200"] = df["Close"].rolling(200).mean()
@@ -77,12 +77,11 @@ def process(ticker, state):
     signals = []
 
     for ma, label in [
-        ("MA20", "20일"),
         ("MA60", "60일"),
         ("MA120", "120일"),
         ("MA200", "200일"),
     ]:
-        result = check_cross(df, ma, label, ticker, state, band=0.01)
+        result = check_cross(df, ma, label, ticker, state, band=0.02)
         if result:
             signals.append(result)
 
