@@ -39,6 +39,14 @@ jobs:
           echo "===== git diff ====="
           git diff -- state.json
 
+      - name: Debug versions
+        run: |
+          python --version
+          pip show yfinance
+          pip show curl_cffi
+          pip show pandas
+          pip show numpy
+
       - name: Commit state
         run: |
           git config user.name "github-actions"
