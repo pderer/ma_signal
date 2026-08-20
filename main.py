@@ -74,6 +74,11 @@ def process(ticker, state):
     df["MA120"] = df["Close"].rolling(120).mean()
     df["MA200"] = df["Close"].rolling(200).mean()
 
+    print(f"\n===== {ticker} =====")
+    print("latest date:", df.index[-1])
+    print("close:", df["Close"].iloc[-1].item())
+    print("MA120:", df["MA120"].iloc[-1].item())
+
     signals = []
 
     for ma, label in [
@@ -81,7 +86,19 @@ def process(ticker, state):
         ("MA120", "120일"),
         ("MA200", "200일"),
     ]:
+        key = f"{ticker}_{ma}"
+
+        print(
+            key,
+            "prev =", state.get(key),
+            "price =", df["Close"].iloc[-1].item(),
+            "ma =", df[ma].iloc[-1].item()
+        )
+        
         result = check_cross(df, ma, label, ticker, state, band=0.02)
+
+        print(key, "after =", state.get(key))
+        
         if result:
             signals.append(result)
 
